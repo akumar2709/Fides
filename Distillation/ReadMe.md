@@ -1,6 +1,6 @@
 # Fides Distillation
 
-train_model.py can be used to train a model from scratch to so that service providers can generate a trustworthy pretrained model. Run - 
+train_model.py can be used to train a model from scratch so that service providers can generate a trustworthy pretrained model. Run - 
 ```bash
 	$   python train_model.py [dataset name]
 ```

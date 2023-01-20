@@ -44,8 +44,8 @@ ds_train = ds_train.prefetch(tf.data.AUTOTUNE)
 ds_test = ds_test.map(input_preprocess)
 ds_test = ds_test.batch(batch_size=batch_size, drop_remainder=True)
 
-student = sys.argv[1].lower()
-teacher = sys.argv[2].lower()
+student = tf.keras.models.load_model(sys.argv[1].lower())
+teacher = tf.keras.models.load_model(sys.argv[2].lower())
 
 #teacher = tf.keras.models.load_model("ResNet152_cifar10_nsm.h5")
 #student = tf.keras.models.load_model("ResNet50_cifar10_nsm.h5")

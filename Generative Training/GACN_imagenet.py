@@ -390,8 +390,3 @@ GADN_models.generator.compile(optimizer, run_eagerly=True)
 GADN_models.corrector.compile(optimizer2, run_eagerly=True)
 
 GADN_models.fit(ds_train,validation_data= ds_test, epochs=1)
-GADN_models.generator.save("DenseNetImageNetGAN_2.h5")
-GADN_models.discriminator.save("DenseNetImageNetDetect_2.h5")
-
-
-

@@ -17,3 +17,8 @@ GDTL.py can be used to distill model to pretrained model. Run -
 	$   python distillation_FT.py [student model] [teacher model] [dataset name]
 ```
 Number of trainable layers can be modified in the code as a parameter of "unfreeze_model(model, layers)" function in the script.
+
+Example of using the above scripts - 
+```bash
+	$   python distillation_FT.py EfficientNetB0.h5 EfficientNetB7.h5 cifar10
+```

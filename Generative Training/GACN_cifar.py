@@ -55,35 +55,6 @@ def input_preprocess(image, label):
     #print(label)
     return image,  label
 
-batch_size = 64
-
-dataset_name = sys.argv[1].lower()
-(ds_train_1, ds_test_1), ds_info = tfds.load(
-        dataset_name, split=["train[:10%] + test[:50%]", "train[25%:35%] + test[50%:]"], with_info=True, as_supervised=True
-)
-NUM_CLASSES = ds_info.features["label"].num_classes
-
-
-IMG_SIZE = 224
-
-size = (IMG_SIZE, IMG_SIZE)
-ds_train_1 = ds_train_1.map(lambda image, label: (tf.image.resize(image, size), label))
-ds_test_1 = ds_test_1.map(lambda image, label: (tf.image.resize(image, size), label))
-
-
-ds_train_1 = ds_train_1.map(
-    input_preprocess, num_parallel_calls=tf.data.AUTOTUNE
-)
-ds_train_1 = ds_train_1.batch(batch_size=batch_size, drop_remainder=True)
-ds_train_1 = ds_train_1.prefetch(tf.data.AUTOTUNE)
-
-ds_test_1 = ds_test_1.map(input_preprocess)
-ds_test_1 = ds_test_1.batch(batch_size=batch_size, drop_remainder=True)
-
-ds_train_1 = ds_train_1.map(lambda image, label: (tf.image.resize(image, size), label))
-ds_test_1 = ds_test_1.map(lambda image, label: (tf.image.resize(image, size), label))
-
-
 #ds_train_2 = ds_train_1.map(
 #    FGSM_preprocess, num_parallel_calls=tf.data.AUTOTUNE
 #)
@@ -234,6 +205,34 @@ def avg_vals(ver_outs):
         label = tf.tensor_scatter_nd_update(label, [[second_max_index]], [avg_val + 0.01])
         labels =  tf.concat([labels, [label]], 0)
     return labels
+
+batch_size = 64
+
+dataset_name = sys.argv[1].lower()
+(ds_train_1, ds_test_1), ds_info = tfds.load(
+        dataset_name, split=["train[:10%] + test[:50%]", "train[25%:35%] + test[50%:]"], with_info=True, as_supervised=True
+)
+NUM_CLASSES = ds_info.features["label"].num_classes
+
+
+IMG_SIZE = 224
+
+size = (IMG_SIZE, IMG_SIZE)
+ds_train_1 = ds_train_1.map(lambda image, label: (tf.image.resize(image, size), label))
+ds_test_1 = ds_test_1.map(lambda image, label: (tf.image.resize(image, size), label))
+
+
+ds_train_1 = ds_train_1.map(
+    input_preprocess, num_parallel_calls=tf.data.AUTOTUNE
+)
+ds_train_1 = ds_train_1.batch(batch_size=batch_size, drop_remainder=True)
+ds_train_1 = ds_train_1.prefetch(tf.data.AUTOTUNE)
+
+ds_test_1 = ds_test_1.map(input_preprocess)
+ds_test_1 = ds_test_1.batch(batch_size=batch_size, drop_remainder=True)
+
+ds_train_1 = ds_train_1.map(lambda image, label: (tf.image.resize(image, size), label))
+ds_test_1 = ds_test_1.map(lambda image, label: (tf.image.resize(image, size), label))
 
 class GADN(tf.keras.Model):
     def __init__(self, detector, generator, corrector, verification_model, service_model):

@@ -15,5 +15,5 @@ GACN_imagenet.py can be used to train the detector and corrector on ImageNet dat
 ```
 example - 
 ```bash
-	$   python GACN_cifar.py ResNet50.h5 ResNet152.h5
+	$   python GACN_imagenent.py ResNet50.h5 ResNet152.h5
 ```

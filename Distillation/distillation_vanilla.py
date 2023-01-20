@@ -44,7 +44,7 @@ ds_test = ds_test.map(input_preprocess)
 ds_test = ds_test.batch(batch_size=batch_size, drop_remainder=True)
 
 
-teacher = sys.argv[2].lower()
+teacher = tf.keras.models.load_model(sys.argv[2].lower())
 
 student = tf.keras.applications.ResNet50(
     include_top=True,

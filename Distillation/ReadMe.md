@@ -14,6 +14,6 @@ Student model architecture can be changed in the code by changing the student va
 
 GDTL.py can be used to distill model to pretrained model. Run - 
 ```bash
-	$   python GDTL.py [student model] [teacher model] [dataset name]
+	$   python distillation_FT.py [student model] [teacher model] [dataset name]
 ```
 Number of trainable layers can be modified in the code as a parameter of "unfreeze_model(model, layers)" function in the script.

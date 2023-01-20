@@ -1,12 +1,6 @@
-# SCLERA
-This is the code base for "SCLERA: A Framework for Privacy-PreservingMLaaS at the Pervasive Edge". 
-We have divided all the major components of the frameworks into smaller independent scripts, so that users can use or combine different components of the framework as they deem fit.  
-
-
-## Disclaimer
-
-**DO NOT USE THIS SOFTWARE TO SECURE ANY 
-REAL-WORLD DATA OR COMPUTATION!**
-
-This software is a proof-of-concept, meant for 
-testing purposes only.
+# Fides Distillation
+distillation_vanilla.py can be used to distill model from scratch. Run - 
+```bash
+	$   python distillation_vanilla.py [dataset name] [teacher model]
+```
+Student model architecture can be changed in the code by changing the student variable.

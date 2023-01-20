@@ -20,5 +20,8 @@ example -
 
 example output - 
 ```bash
-156/156 [==============================] - 2696s 17s/step - GACN loss: 7.0034 - Det loss: 0.9591 - Det Acc: 0.8152 - Corrector Loss: 0.2885 - val_Corrector acc: 0.9219 - val_Corrector recall: 0.9528 - val_Corrector Prec: 0.9528 - val_Corrector-F1: 0.9528 - val_Accuracy: 0.9531 - val_F1Score: 0.8829 - val_Switch_acc: 0.9433 - val_Switch_F1: 0.9400 - val_Avg_acc: 0.9444 - val_avg-F1: 0.9411 - val_FGSM_acc: 0.8832 - val_FGSM-F1: 0.8838
+156/156 [==============================] - 2696s 17s/step - GACN loss: 7.0034 - Det loss: 0.9591 - Det Acc: 0.8152 - Corrector Loss: 0.2885 - 
+val_Corrector acc: 0.9219 - val_Corrector recall: 0.9528 - val_Corrector Prec: 0.9528 - val_Corrector-F1: 0.9528 - 
+val_Accuracy: 0.9531 - val_F1Score: 0.8829 - val_Switch_acc: 0.9433 - val_Switch_F1: 0.9400 - val_Avg_acc: 0.9444 - 
+val_avg-F1: 0.9411 - val_FGSM_acc: 0.8832 - val_FGSM-F1: 0.8838
 ```

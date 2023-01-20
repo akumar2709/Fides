@@ -29,60 +29,53 @@ img_augmentation = Sequential(
     name="img_augmentation",
 )
 
-service = tf.keras.models.load_model(sys.argv[3].lower())
+# Construct a tf.data.Dataset
+(ds_train, ds_test) = tfds.load('imagenet2012', split=["validation[:20%]", "validation[20%:30%]"], shuffle_files=False, as_supervised=True)
 
 def FGSM_preprocess(images, labels):
     advs = tf.zeros([0,224,224,3])
     for image, label in zip(images, labels):
         image = tf.reshape(image, [1,224,224,3])
-        label = tf.reshape(label, [1,100])
+        label = tf.reshape(label, [1,1000])
         with tf.GradientTape() as tape:
             tape.watch(image)
             prediction = tf.nn.softmax(service(image))
             loss = tf.keras.losses.categorical_crossentropy(label, prediction)
         gradient = tape.gradient(loss,image)
-        signed_grad = image + 10*tf.sign(gradient)
+        signed_grad = image + 100*tf.sign(gradient)
         #print(image)
         #print(signed_grad)
         advs = tf.concat([advs, signed_grad], 0)
     return advs
+
+def resize_with_crop(image, label):
+    i = image
+    i = tf.cast(i, tf.float32)
+    i = tf.image.resize_with_crop_or_pad(i,224, 224)
+    i = tf.keras.applications.densenet.preprocess_input(i)
+    label = tf.one_hot(label, 1000)
+    return (i, label)
+
+# Preprocess the images
+ds_train = ds_train.map(resize_with_crop)
+ds_test = ds_test.map(resize_with_crop)
 # One-hot / categorical encoding
 def input_preprocess(image, label):
     label = tf.convert_to_tensor(label, dtype=tf.int64)
     label = tf.one_hot(label, NUM_CLASSES)
-    #adv_img = FGSM_preprocess(image, label)
-    #print(service(tf.reshape(adv_img, [1,224,224,3])))
-    #print(label)
-    return image,  label
+    return image, label
 
 batch_size = 64
 
-dataset_name = sys.argv[1].lower()
-(ds_train_1, ds_test_1), ds_info = tfds.load(
-        dataset_name, split=["train[:10%] + test[:50%]", "train[25%:35%] + test[50%:]"], with_info=True, as_supervised=True
-)
-NUM_CLASSES = ds_info.features["label"].num_classes
+NUM_CLASSES = 10
 
 
 IMG_SIZE = 224
 
 size = (IMG_SIZE, IMG_SIZE)
-ds_train_1 = ds_train_1.map(lambda image, label: (tf.image.resize(image, size), label))
-ds_test_1 = ds_test_1.map(lambda image, label: (tf.image.resize(image, size), label))
 
-
-ds_train_1 = ds_train_1.map(
-    input_preprocess, num_parallel_calls=tf.data.AUTOTUNE
-)
-ds_train_1 = ds_train_1.batch(batch_size=batch_size, drop_remainder=True)
-ds_train_1 = ds_train_1.prefetch(tf.data.AUTOTUNE)
-
-ds_test_1 = ds_test_1.map(input_preprocess)
-ds_test_1 = ds_test_1.batch(batch_size=batch_size, drop_remainder=True)
-
-ds_train_1 = ds_train_1.map(lambda image, label: (tf.image.resize(image, size), label))
-ds_test_1 = ds_test_1.map(lambda image, label: (tf.image.resize(image, size), label))
-
+ds_train = ds_train.batch(batch_size=batch_size, drop_remainder=True)
+ds_test = ds_test.batch(batch_size=batch_size, drop_remainder=True)
 
 #ds_train_2 = ds_train_1.map(
 #    FGSM_preprocess, num_parallel_calls=tf.data.AUTOTUNE
@@ -109,16 +102,15 @@ switch_F1 = tfa.metrics.F1Score(num_classes=1, name="switch_F1", threshold=0.5)
 avg_F1 = tfa.metrics.F1Score(num_classes=1, name="avg_F1", threshold=0.5)
 FGSM_F1 = tfa.metrics.F1Score(num_classes=1, name="FGSM_F1", threshold=0.5)
 
-
 def GACN_model(output_size):
     model = models.Sequential()
     model.add(layers.Dense(2*output_size, activation='LeakyReLU'))
     #model.add(layers.batchNormalization())
-    model.add(layers.Dense(64, activation='LeakyReLU'))
-    model.add(layers.Dropout(0.2))
     model.add(layers.Dense(128, activation='LeakyReLU'))
     model.add(layers.Dropout(0.2))
-    model.add(layers.Dense(64, activation='LeakyReLU'))
+    model.add(layers.Dense(256, activation='LeakyReLU'))
+    model.add(layers.Dropout(0.2))
+    model.add(layers.Dense(128, activation='LeakyReLU'))
     model.add(layers.Dense(output_size))
 
     return model
@@ -129,10 +121,10 @@ def detection_model(output_size):
     detection_model.add(layers.Dense(128, activation='LeakyReLU'))
     detection_model.add(layers.Dropout(0.2))
     detection_model.add(layers.BatchNormalization())
-    detection_model.add(layers.Dense(128, activation='LeakyReLU'))
+    detection_model.add(layers.Dense(256, activation='LeakyReLU'))
     detection_model.add(layers.Dropout(0.2))
     detection_model.add(layers.BatchNormalization())
-    detection_model.add(layers.Dense(64, activation='LeakyReLU'))
+    detection_model.add(layers.Dense(128, activation='LeakyReLU'))
     detection_model.add(layers.Dropout(0.2))
     detection_model.add(layers.BatchNormalization())
     detection_model.add(layers.Dense(1, activation="sigmoid"))
@@ -144,7 +136,7 @@ def correction_model(output_size):
     correction_model.add(layers.Dense(128, activation='LeakyReLU'))
     correction_model.add(layers.Dropout(0.2))
     correction_model.add(layers.BatchNormalization())
-    correction_model.add(layers.Dense(128, activation='LeakyReLU'))
+    correction_model.add(layers.Dense(256, activation='LeakyReLU'))
     correction_model.add(layers.Dropout(0.2))
     correction_model.add(layers.BatchNormalization())
     correction_model.add(layers.Dense(64, activation='LeakyReLU'))
@@ -234,6 +226,21 @@ def avg_vals(ver_outs):
         label = tf.tensor_scatter_nd_update(label, [[second_max_index]], [avg_val + 0.01])
         labels =  tf.concat([labels, [label]], 0)
     return labels
+def indice_tensors(preds):
+    indiced_preds = tf.zeros([0, NUM_CLASSES], dtype=tf.float32)
+    for pred  in preds:
+        max_num = tf.argmax(pred).numpy()
+        num_2 = (max_num/1000)*NUM_CLASSES
+        num_2 = tf.math.round(tf.constant(num_2)).numpy().astype('int32')
+        #if(max_num>50 and max_num < 950):
+        #    indiced_preds = tf.concat([indiced_preds, [pred[max_num - 50: max_num + 50]]], 0)
+        #elif(max_num <= 50):
+        #    indiced_preds = tf.concat([indiced_preds, [pred[0: 100]]], 0)
+        #else:
+        #    indiced_preds = tf.concat([indiced_preds, [pred[900: 1000]]], 0)
+        #print(pred[max_num - num_2:max_num + (NUM_CLASSES - num_2)])
+        indiced_preds = tf.concat([indiced_preds, [pred[max_num - num_2:max_num + (NUM_CLASSES - num_2)]]], 0)
+    return indiced_preds
 
 class GADN(tf.keras.Model):
     def __init__(self, detector, generator, corrector, verification_model, service_model):
@@ -247,12 +254,15 @@ class GADN(tf.keras.Model):
     def train_step(self, data):
         images, labels = data
         verification_output = self.verification_model(images)
+        verification_output = indice_tensors(verification_output)
         service_output = self.service_model(images)
+        service_output = indice_tensors(service_output)
+        #verification_output = tf.math.top_k(self.verification_model(images), k=10).values
+        #service_output = tf.math.top_k(self.service_model(images), k = 10).values
         verification_softmax = tf.nn.softmax(verification_output)
         service_softmax = tf.nn.softmax(service_output)
         loss_output = tf.reshape(tf.keras.losses.categorical_crossentropy(service_softmax, verification_softmax), [64,1])
         corrector_labels = correction_label(service_softmax, verification_softmax, labels)
-
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape, tf.GradientTape() as corr_tape:
             generator_output = self.generator(service_output)
             generator_softmax = tf.nn.softmax(generator_output)
@@ -293,18 +303,18 @@ class GADN(tf.keras.Model):
         # train_loss.reset_states()
         return {"GACN loss": gen_loss, "Det loss": detect_loss, "Det Acc":v_acc, "Corrector Loss":correction_loss}
 
-
     def test_step(self, data):
-        images, labels = data
+        images,labels = data
         adv = FGSM_preprocess(images, labels)
-        #adv_images = FGSM(data, self.service_model)
-        #corrector_labels = tf.concat([labels, labels], 0)
         verification_output = self.verification_model(images)
+        verification_output = indice_tensors(verification_output)
         service_output = self.service_model(images)
+        service_output = indice_tensors(service_output)
         service_adv_output = self.service_model(adv)
+        service_adv_output = indice_tensors(service_adv_output)
+        service_adv_softmax = tf.nn.softmax(service_adv_output)
         verification_softmax = tf.nn.softmax(verification_output)
         service_softmax = tf.nn.softmax(service_output)
-        service_adv_softmax = tf.nn.softmax(service_adv_output)
         corrector_labels = correction_label(service_softmax, verification_softmax, labels)
         corrector_labels = tf.concat([corrector_labels, corrector_labels], 0)
         loss_output = tf.reshape(tf.keras.losses.categorical_crossentropy(service_softmax, verification_softmax), [64,1])
@@ -315,16 +325,16 @@ class GADN(tf.keras.Model):
         avg_attack = avg_vals(service_softmax)
         loss_avg = tf.reshape(tf.keras.losses.categorical_crossentropy(avg_attack, verification_softmax), [64,1])
 
-        #service_FGSM = self.service_model(adv_images)
-        #FGSM_softmax = tf.nn.softmax(service_FGSM)
-        #FGSM_loss = tf.reshape(tf.keras.losses.categorical_crossentropy(service_softmax, FGSM_softmax), [64, 1])
         real_output = self.discriminator(loss_output)
         switch_output = self.discriminator(loss_switch)
         avg_output = self.discriminator(loss_avg)
+        FGSM_output = self.discriminator(loss_adv)
         #real_output = self.discriminator(tf.concat([service_softmax, verification_softmax, loss_output], 1))
+        #switch_output = self.discriminator(tf.concat([switch_attack, verification_softmax, loss_switch], 1))
+        #avg_output = self.discriminator(tf.concat([avg_attack, verification_softmax, loss_avg], 1))
         #switch_corrector_output = self.corrector(tf.concat([switch_attack, verification_softmax, loss_switch], 1))
         #avg_corrector_output = self.corrector(tf.concat([avg_attack, verification_softmax, loss_avg], 1))
-        FGSM_output = self.discriminator(loss_adv)
+        #FGSM_output = self.discriminator(tf.concat([FGSM_softmax, verification_softmax, FGSM_loss], 1))
         switch_corrector_output = self.corrector(loss_switch)
         avg_corrector_output = self.corrector(loss_avg)
 
@@ -336,9 +346,8 @@ class GADN(tf.keras.Model):
         labels_FGSM = tf.concat([labels, tf.zeros_like(FGSM_output)], 0)
         labels = tf.concat([labels, tf.zeros_like(switch_output)], 0)
         labels = tf.concat([labels, tf.zeros_like(avg_output)], 0)
-        labels = tf.concat([labels, tf.zeros_like(FGSM_output)], 0)
         #labels = tf.concat([labels, tf.zeros_like(FGSM_output)], 0)
-        outputs = tf.concat([real_output, switch_output, avg_output, FGSM_output],0)
+        outputs = tf.concat([real_output, switch_output, avg_output],0)
         outputs_switch = tf.concat([real_output, switch_output],0)
         outputs_avg = tf.concat([real_output, avg_output],0)
         outputs_FGSM = tf.concat([real_output, FGSM_output],0)
@@ -369,8 +378,8 @@ GACN = GACN_model(NUM_CLASSES)
 detector = detection_model(NUM_CLASSES)
 corrector = correction_model(NUM_CLASSES)
 
-service = tf.keras.models.load_model(sys.argv[3].lower())
-verification = tf.keras.models.load_model(sys.argv[2].lower())
+service = tf.keras.models.load_model(sys.argv[2].lower())
+verification = tf.keras.models.load_model(sys.argv[1].lower())
 
 GADN_models = GADN(detector, GACN, corrector, verification, service)
 optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4)
@@ -380,4 +389,9 @@ GADN_models.discriminator.compile(optimizer, run_eagerly=True)
 GADN_models.generator.compile(optimizer, run_eagerly=True)
 GADN_models.corrector.compile(optimizer2, run_eagerly=True)
 
-GADN_models.fit(ds_train_1,validation_data= ds_test_1, epochs=1)
+GADN_models.fit(ds_train,validation_data= ds_test, epochs=1)
+GADN_models.generator.save("DenseNetImageNetGAN_2.h5")
+GADN_models.discriminator.save("DenseNetImageNetDetect_2.h5")
+
+
+

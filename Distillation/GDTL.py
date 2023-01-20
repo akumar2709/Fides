@@ -137,7 +137,4 @@ student_distilled.fit(ds_train,
             validation_data= ds_test,
             epochs=10)
 
-student = sys.argv[1].lower()
-teacher = sys.argv[2].lower()
-
 student_distilled.student.save("distilled_model.h5")

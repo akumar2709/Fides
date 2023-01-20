@@ -141,5 +141,3 @@ student = sys.argv[1].lower()
 teacher = sys.argv[2].lower()
 
 student_distilled.student.save("distilled_model.h5")
-#student.load_weights("EfficientNetB2_cifar100_dropout.h5")
-#student_distilled.student.save("EfficientNetB1_cifar100_dropout.h5")

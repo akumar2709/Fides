@@ -8,20 +8,6 @@ from scipy.special import rel_entr, kl_div, softmax
 from scipy.stats import wasserstein_distance, energy_distance
 import seaborn as sns
 
-'''
-This script calculates de KL Divergence between two probability vectors.
-Additional, it performs Attack Scenario #1 over the main model.
-A threshold is also calculated between similartities close to 0 and those with a high dissimilarity.
-A plot is created.
-
-[05/10/2022] Cases 1 and 5 are put together as Case A; same for cases 2, 3 and 4 as case B.
-[05/12/2022] The Wasserstein distance was added as a second distance value besides KLD. calculate_distance() function
-
-Date: 04/26/2022
-Author: Mike Guirao
-'''
-
-
 def NormalizeData(data):
     return (data - np.min(data)) / (np.max(data) - np.min(data))
 

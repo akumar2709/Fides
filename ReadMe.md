@@ -10,3 +10,4 @@ The Generative Training folder contains scripts for training the detector and co
 
 The sgx_demo folder contains scripts for testing tflite models in sgx using graphene library
 
+The measure_divergence folder contains script to measure and plot Jeffery's divergence and Wasserstien Distance between the probability output of verification model and service model.

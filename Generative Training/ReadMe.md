@@ -1,6 +1,6 @@
 # Fides Generative Training
 
-Note - To start using the Generative Training framework, you need to train a verification model and a service model. 
+Note - To start using the Generative Training framework, you need to train a verification model and a service model. The distillation folder provides the scripts to do so.
 
 GACN_cifar.py can be used train the detector on cifar10 or cifar100. Run - 
 ```bash
